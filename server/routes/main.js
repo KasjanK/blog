@@ -1,13 +1,36 @@
 const express = require("express");
 const router = express.Router();
+const Post = require("../models/Post");
 
 // routes
-router.get("", (req, res) => {
-  const locals = {
-    title: "NodeJS Blog",
-    description: "Simple Blog created with NodeJS, Express & MongoDB",
-  };
-  res.render("index", { locals });
+router.get("", async (req, res) => {
+  try {
+    const locals = {
+      title: "NodeJS Blog",
+      description: "Simple Blog created with NodeJS, Express & MongoDB",
+    };
+
+    let perPage = 10;
+    let page = req.query.page || 1;
+
+    const data = await Post.aggregate([{ $sort: { createdAt: -1 } }])
+      .skip(perPage * page - perPage)
+      .limit(perPage)
+      .exec();
+
+    const count = await Post.countDocuments();
+    const nextPage = parseInt(page) + 1;
+    const hasNextPage = nextPage <= Math.ceil(count / perPage);
+
+    res.render("index", {
+      locals,
+      data,
+      current: page,
+      nextPage: hasNextPage ? nextPage : null,
+    });
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 router.get("/about", (req, res) => {
@@ -15,3 +38,14 @@ router.get("/about", (req, res) => {
 });
 
 module.exports = router;
+
+/* function insertPostData() {
+  Post.insertMany([
+    {
+      title: "Building a blog",
+      body: "This is the body text",
+    },
+  ]);
+}
+
+insertPostData(); */
